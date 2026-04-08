@@ -16,8 +16,8 @@ collected data from hundreds of farm households across multiple rounds,
 with enumerator-introduced spelling variation in household names and
 >20% item-level missingness in key empowerment and labor variables.
 
-Sloppy handling of either problem — imputing badly or failing to match
-panel records correctly — would bias the treatment effect estimates that
+Sloppy handling of either problem: imputing badly or failing to match
+panel records correctly would bias the treatment effect estimates that
 the research depends on.
 
 This repo documents the pipeline we used to solve both problems
