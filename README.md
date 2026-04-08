@@ -1,42 +1,80 @@
-# Organic Agriculture Survey Data Imputation
+# Organic Agriculture RCT — Data Cleaning and ML Imputation Pipeline
 
-**Goal:** Improve data completeness in agricultural field experiments by applying machine learning–based imputation and NLP-assisted name cleaning.  
-**Techniques:** K-Nearest Neighbors (KNN), XGBoost regression, iterative imputation, fuzzy string matching.
-
-## Project Context
-This project was part of a larger randomized controlled trial (RCT) studying the adoption and impact of organic crop fertilizer among rural households.  
-During the baseline and follow-up surveys, we found:
-- **>20% missingness** in household empowerment question
-- **Inconsistent household names** due to enumerator spelling variations
-
-Our objective:
-1. Minimize information loss from missing data  
-2. Standardize household names for accurate panel matching  
-3. Ensure reproducibility for future survey-based research
+**Project context:** Randomized controlled trial on organic farming technology
+adoption among rural households in the Philippines
+**Role of this pipeline:** Prepare baseline and follow-up survey data for
+causal analysis, including gender-disaggregated labor productivity estimation
+**Keywords:** RCT data cleaning, KNN imputation, XGBoost, fuzzy matching,
+field survey data, reproducible pipeline
 
 ---
 
-## Approach
-### Missing Data Imputation
-We tested:
-- **KNNImputer** from `scikit-learn`
-- **XGBoost** regression
-- **Iterative imputation** (similar to MICE)
-- Benchmarked against mean/median imputation
+## Why this matters
 
-KNN performed best for our dataset size and structure, balancing accuracy and speed.
+Field survey data from low-resource settings is rarely clean. This RCT
+collected data from hundreds of farm households across multiple rounds,
+with enumerator-introduced spelling variation in household names and
+>20% item-level missingness in key empowerment and labor variables.
 
-**Example (synthetic data):**
-```python
-import pandas as pd
-from sklearn.impute import KNNImputer
+Sloppy handling of either problem — imputing badly or failing to match
+panel records correctly — would bias the treatment effect estimates that
+the research depends on.
 
-df = pd.DataFrame({
-    'fertilizer_use_kg': [100, None, 80, None, 60],
-    'yield_kg': [300, 250, None, 200, None],
-    'rainfall_mm': [120, 100, 90, None, 110]
-})
+This repo documents the pipeline we used to solve both problems
+reproducibly.
 
-imputer = KNNImputer(n_neighbors=2)
-df_imputed = pd.DataFrame(imputer.fit_transform(df), columns=df.columns)
-print(df_imputed)
+---
+
+## Two problems, two solutions
+
+### Problem 1: Missing values in outcome variables
+
+Missing data was not random — it was concentrated in female labor hours
+and household empowerment questions, which are harder to collect and
+more sensitive. Naive listwise deletion would have disproportionately
+removed female-headed and lower-wealth households, biasing the
+gender analysis.
+
+**Approach tested:**
+
+| Method | Notes |
+|---|---|
+| Mean/median imputation | Baseline benchmark; distorts variance |
+| KNNImputer (scikit-learn) | Best performer for our dataset size and structure |
+| XGBoost regression | Strong on larger datasets; slightly overfit here |
+| Iterative imputation (MICE-style) | Computationally intensive; marginal gain |
+
+KNN performed best overall, balancing accuracy and interpretability.
+
+### Problem 2: Inconsistent household names across survey rounds
+
+Enumerators spelled household names differently across rounds, making
+panel linkage unreliable. We used **fuzzy string matching** (RapidFuzz)
+to identify likely duplicates and flag cases for manual review, with
+a confidence threshold to separate automatic matches from manual QA.
+
+---
+
+## Notebook
+
+`Data_cleaning-Sample.ipynb` — synthetic data example demonstrating:
+- KNN imputation with cross-validation on held-out cases
+- Fuzzy name matching with threshold-based QA flagging
+- Comparison of imputation strategies on simulated missingness
+
+*Original survey data is not shared due to IRB restrictions.*
+
+---
+
+## Transferability
+
+The same pipeline logic applies to any administrative or clinical dataset
+with panel linkage challenges and structured missingness — including
+EHR records with inconsistent patient identifiers, or claims data with
+missing or miscoded diagnosis codes.
+
+---
+
+## Author
+
+Mengshan Zhao | mengshan.zhao@wsu.edu | [www.mengshanzhao.com](https://www.mengshanzhao.com)
